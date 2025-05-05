@@ -1,4 +1,6 @@
 -- Solutions
+
+
 -- EDA
 
 SELECT * FROM customers;
@@ -6,9 +8,11 @@ SELECT * FROM inventory;
 SELECT * FROM order_items;
 SELECT * FROM orders;
 SELECT * FROM payments;
+
 SELECT 
 	DISTINCT payment_status
 FROM payments
+
 SELECT * FROM products;
 SELECT * FROM sellers;
 SELECT * FROM shippings;
@@ -45,7 +49,6 @@ SELECT * FROM order_items;
 
 -- ---------------------------------------
 -- Amazon Business Problems
--- Advanced SQL
 -- ---------------------------------------
 
 /*
@@ -53,6 +56,7 @@ SELECT * FROM order_items;
 Query the top 10 products by total sales value.
 Challenge: Include product name, total quantity sold, and total sales value.
 */
+
 -- join oi -- o -- p
 -- group by pid
 -- total sale
@@ -108,8 +112,8 @@ SELECT
 	c.category_name,
 	SUM(oi.total_saleS) as total_sale,
 	SUM(oi.total_saleS)/
-					(SELECT SUM(total_saleS) FROM order_items) 
-					* 100
+			    (SELECT SUM(total_saleS) FROM order_items) 
+									* 100
 	as contribution
 FROM order_items as oi
 JOIN
@@ -119,9 +123,6 @@ LEFT JOIN category as c
 ON c.category_id = p.category_id
 GROUP BY 1, 2
 ORDER BY 3 DESC
-
-
--- 
 
 
 /*
@@ -200,10 +201,8 @@ Challenge: List customer details and the time since their registration.
 SELECT *
 	-- reg_date - CURRENT_DATE
 FROM customers
-WHERE customer_id NOT IN (SELECT 
-					DISTINCT customer_id
-				FROM orders
-				);
+WHERE customer_id NOT IN (SELECT DISTINCT customer_id
+			  FROM orders);
 
 
 -- Approach 2
@@ -648,24 +647,16 @@ FROM last_year_sale as ls
 JOIN
 current_year_sale as cs
 ON ls.product_id = cs.product_id
-WHERE 
-	ls.revenue > cs.revenue
+WHERE ls.revenue > cs.revenue
 ORDER BY 5 DESC
 LIMIT 10
 
 
 -- Store PROCEDURE
 
-
-
-
-
 /*
-Final Task
--- Store Procedure
 create a function as soon as the product is sold the the same quantity should reduced from inventory table
 after adding any sales records it should update the stock in the inventory table based on the product and qty purchased
--- 
 */
 
 SELECT * FROM products
@@ -688,57 +679,55 @@ product_id,
 quantity,
 
 
-CREATE OR REPLACE PROCEDURE add_sales
-(
-p_order_id INT,
-p_customer_id INT,
-p_seller_id INT,
-p_order_item_id INT,
-p_product_id INT,
-p_quantity INT
-)
+CREATE OR REPLACE PROCEDURE add_sales(
+					p_order_id INT,
+					p_customer_id INT,
+					p_seller_id INT,
+					p_order_item_id INT,
+					p_product_id INT,
+					p_quantity INT
+					)
 LANGUAGE plpgsql
 AS $$
 
 DECLARE 
--- all variable
 v_count INT;
 v_price FLOAT;
 v_product VARCHAR(50);
 
 BEGIN
 -- Fetching product name and price based p id entered
-	SELECT 
-		price, product_name
-		INTO
-		v_price, v_product
+	
+	SELECT price, product_name
+	       INTO
+	       v_price, v_product
 	FROM products
 	WHERE product_id = p_product_id;
 	
 -- checking stock and product availability in inventory	
-	SELECT 
-		COUNT(*) 
-		INTO
-		v_count
+
+	SELECT COUNT(*) INTO v_count
 	FROM inventory
-	WHERE 
-		product_id = p_product_id
-		AND 
-		stock >= p_quantity;
+	WHERE product_id = p_product_id AND 
+	      stock >= p_quantity;
 		
 	IF v_count > 0 THEN
+	
 	-- add into orders and order_items table
 	-- update inventory
+	
 		INSERT INTO orders(order_id, order_date, customer_id, seller_id)
 		VALUES
 		(p_order_id, CURRENT_DATE, p_customer_id, p_seller_id);
 
 		-- adding into order list
+
 		INSERT INTO order_items(order_item_id, order_id, product_id, quantity, price_per_unit, total_sale)
 		VALUES
 		(p_order_item_id, p_order_id, p_product_id, p_quantity, v_price, v_price*p_quantity);
 
 		--updating inventory
+
 		UPDATE inventory
 		SET stock = stock - p_quantity
 		WHERE product_id = p_product_id;
@@ -750,7 +739,6 @@ BEGIN
 
 	END IF;
 
-
 END;
 $$
 
@@ -758,17 +746,9 @@ $$
 
 SELECT COUNT(*) 
 FROM inventory
-WHERE 
-	product_id = 1
-	AND 
-	stock >= 56
+WHERE product_id = 1 AND stock >= 56
 
-
-
-call add_sales
-(
-25005, 2, 5, 25004, 1, 14
-);
+call add_sales(25005, 2, 5, 25004, 1, 14);
 
 
 (
